@@ -1,0 +1,41 @@
+{
+    "name": "EXIF Editor",
+    "short_name": "EXIF Editor",
+    "description": "Edit JPEG EXIF metadata information, works offline",
+    "author": "Kyle Graehl",
+    "version": "0.0.1",
+    "manifest_version": 2,
+    "offline_enabled": true,
+    "minimum_chrome_version": "31",
+    "file_handlers": {
+        "any": {
+            "types": [
+                "image/jpeg"
+            ],
+            "extensions": [
+                "jpeg", "jpg"
+            ],
+            "title": "Open with EXIF Editor"
+        }
+    },
+    "app": {
+        "background": {
+            "scripts": ["background.js"]
+        }
+    },
+    "permissions": [
+        {"fileSystem":["directory","retainEntries"]}
+    ],
+    "icons": { 
+        "16": "icon-16.png",
+        "19": "icon-19.png",
+        "32": "icon-32.png",
+        "38": "icon-38.png",
+        "48": "icon-48.png",
+        "64": "icon-64.png",
+        "96": "icon-96.png",
+        "128": "icon-128.png",
+        "256": "icon-256.png"
+    }
+
+}

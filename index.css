@@ -1,0 +1,7 @@
+body {
+    background:#ffa
+}
+
+.mytable td {
+    border: 1px solid black;
+}
