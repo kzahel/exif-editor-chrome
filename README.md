@@ -1,0 +1,1 @@
+offline jpeg exif metadata editor for chrome
