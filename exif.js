@@ -32,6 +32,10 @@ BufferShim.prototype.getShort = function(idx, isBigEndian) {
     // little endian should be default
     return this.view.getUint16(idx, !isBigEndian)
 }
+BufferShim.prototype.getSignedShort = function(idx, isBigEndian) {
+    // little endian should be default
+    return this.view.getInt16(idx, !isBigEndian)
+}
 BufferShim.prototype.getLong = function(idx, isBigEndian) {
     return this.view.getUint32(idx, !isBigEndian)
 }
@@ -171,7 +175,6 @@ ExifImage.prototype.processImage = function (inbuf, callback) {
 
     } catch (error) {
         console.error(error)
-        debugger
         callback(error);
     }
     
@@ -260,7 +263,6 @@ ExifImage.prototype.extractExifData = function (data, start, length) {
     // Look for a pointer to the GPS IFD in IFD0 and extract information from
     // it if available
     if (typeof this.exifData.image[ExifImage.TAGS.exif[0x8825]] != "undefined") {
-
         ifdOffset = tiffOffset + this.exifData.image[ExifImage.TAGS.exif[0x8825]];
         numberOfEntries = data.getShort(ifdOffset, this.isBigEndian);
         
@@ -297,18 +299,19 @@ ExifImage.prototype.extractExifData = function (data, start, length) {
     // Makernotes the image contains, load the respective functionality and 
     // start the extraction
     if (typeof this.exifData.exif[ExifImage.TAGS.exif[0x927C]] != "undefined") {
-
+        var maker = this.exifData.exif[ExifImage.TAGS.exif[0x927C]].getString(0, 8)
+        console.log("MAKERNOTE:",maker)
         // Check the header to see what kind of Makernote we are dealing with
         if (this.exifData.exif[ExifImage.TAGS.exif[0x927C]].getString(0, 7) === "OLYMP\x00\x01" || this.exifData.exif[ExifImage.TAGS.exif[0x927C]].getString(0, 7) === "OLYMP\x00\x02") {
-            this.extractMakernotes = require('./makernotes/olympus').extractMakernotes;
+            this.extractMakernotes = olympus_extractMakernotes;
         } else if (this.exifData.exif[ExifImage.TAGS.exif[0x927C]].getString(0, 7) === "AGFA \x00\x01") {
-            this.extractMakernotes = require('./makernotes/agfa').extractMakernotes;
+            this.extractMakernotes = agfa_extractMakernotes;
         } else if (this.exifData.exif[ExifImage.TAGS.exif[0x927C]].getString(0, 8) === "EPSON\x00\x01\x00") {
-            this.extractMakernotes = require('./makernotes/epson').extractMakernotes;
+            this.extractMakernotes = epson_extractMakernotes;
         } else if (this.exifData.exif[ExifImage.TAGS.exif[0x927C]].getString(0, 8) === "FUJIFILM") {
-            this.extractMakernotes = require('./makernotes/fujifilm').extractMakernotes;
+            this.extractMakernotes = fujifilm_extractMakernotes;
     } else if (this.exifData.exif[ExifImage.TAGS.exif[0x927C]].getString(0, 5) === "SANYO") {
-      this.extractMakernotes = require('./makernotes/sanyo').extractMakernotes;
+      this.extractMakernotes = sanyo_extractMakernotes;
         } else {
             // Makernotes are available but the format is not recognized so
             // an error message is pushed instead, this ain't the best 
