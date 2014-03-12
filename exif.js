@@ -16,6 +16,55 @@ var fs = require('fs'),
  * @param callback Function to call when data is extracted or an error occured 
  * @return Nothing of importance, calls the specified callback function instead
  */
+
+/*
+
+html5 DataView .getShort is getInt16(offset, islittleendian)
+
+*/
+
+function BufferShim(arraybuffer) {
+    this.buffer = arraybuffer
+    this.length = arraybuffer.byteLength
+    this.view = new DataView(arraybuffer)
+}
+BufferShim.prototype.getShort = function(idx, isBigEndian) {
+    // little endian should be default
+    return this.view.getUint16(idx, !isBigEndian)
+}
+BufferShim.prototype.getLong = function(idx, isBigEndian) {
+    return this.view.getUint32(idx, !isBigEndian)
+}
+BufferShim.prototype.getSignedByte = function(idx, isBigEndian) {
+    return this.view.getInt8(idx, !isBigEndian)
+}
+BufferShim.prototype.getByte = function(idx, isBigEndian) {
+    return this.view.getUint8(idx, !isBigEndian)
+}
+BufferShim.prototype.getSignedLong = function(idx, isBigEndian) {
+    return this.view.getInt32(idx, !isBigEndian)
+}
+BufferShim.prototype.slice = function(a,b) {
+    return new BufferShim(this.buffer.slice(a,b))
+}
+BufferShim.prototype.getString = function(idx, sz) {
+    return this.toString('utf-8', idx, idx+sz)
+}
+BufferShim.prototype.toString = function(encoding, start, end) {
+    // todo fix use something like StringView
+    var res = []
+    for (var i=start; i<end; i++) {
+        res.push( String.fromCharCode(this.view.getUint8(i)) )
+    }
+    return res.join('')
+}
+
+BufferShim.prototype.get = function(idx) {
+    return this.view.getUint8(idx)
+}
+//BufferShim.prototype.__defineGetter__("
+
+
 function ExifImage (options, callback) {
     
     var self = this;
@@ -73,7 +122,7 @@ ExifImage.prototype.loadImage = function (image, callback) {
         image.file( function(file) {
             var fr = new FileReader
             fr.onload = function(evt) {
-                self.processImage(new Uint8Array(evt.target.result), callback)
+                self.processImage(evt.target.result, callback)
             }
             fr.readAsArrayBuffer(file)
         })
@@ -85,12 +134,16 @@ ExifImage.prototype.loadImage = function (image, callback) {
 
 };
 
-ExifImage.prototype.processImage = function (data, callback) {
+ExifImage.prototype.processImage = function (inbuf, callback) {
+
+
+    var data = new BufferShim(inbuf)
+
 
     var self = this;
     var offset = 0;
 
-    if (data[offset++] == 0xFF && data[offset++] == 0xD8) {
+    if (data.get(offset++) == 0xFF && data.get(offset++) == 0xD8) {
         self.imageType = 'JPEG';
     } else {
         callback(new Error('The given image is not a JPEG and thus unsupported right now.'));
@@ -101,12 +154,12 @@ ExifImage.prototype.processImage = function (data, callback) {
     
         while (offset < data.length) {
             
-            if (data[offset++] != 0xFF) {
-                callback(new Error('Invalid marker found at offset '+(--offset)+'. Expected 0xFF but found 0x'+data[offset].toString(16).toUpperCase()+"."));
+            if (data.get(offset++) != 0xFF) {
+                callback(new Error('Invalid marker found at offset '+(--offset)+'. Expected 0xFF but found 0x'+data.get(offset).toString(16).toUpperCase()+"."));
                 return;
             }
             
-            if (data[offset++] == 0xE1) {
+            if (data.get(offset++) == 0xE1) {
                 var exifData = self.extractExifData(data, offset + 2, data.getShort(offset, true) - 2);
                 callback(false, exifData);
                 return;
@@ -117,6 +170,8 @@ ExifImage.prototype.processImage = function (data, callback) {
         }
 
     } catch (error) {
+        console.error(error)
+        debugger
         callback(error);
     }
     
@@ -142,13 +197,13 @@ ExifImage.prototype.extractExifData = function (data, start, length) {
     } else if (data.getShort(tiffOffset) == 0x4D4D) {
         this.isBigEndian = true;
     } else {
-        throw new Error('Invalid TIFF data! Expected 0x4949 or 0x4D4D at offset '+(tiffOffset)+' but found 0x'+data[tiffOffset].toString(16).toUpperCase()+data[tiffOffset + 1].toString(16).toUpperCase()+".");
+        throw new Error('Invalid TIFF data! Expected 0x4949 or 0x4D4D at offset '+(tiffOffset)+' but found 0x'+data.get(tiffOffset).toString(16).toUpperCase()+data.get(tiffOffset + 1).toString(16).toUpperCase()+".");
     }
     
     // Valid TIFF headers always have 0x002A here
     if (data.getShort(tiffOffset + 2, this.isBigEndian) != 0x002A) {
         var expected = (this.isBigEndian) ? '0x002A' : '0x2A00';
-        throw new Error('Invalid TIFF data! Expected '+expected+' at offset '+(tiffOffset + 2)+' but found 0x'+data[tiffOffset + 2].toString(16).toUpperCase()+data[tiffOffset + 3].toString(16).toUpperCase()+".");
+        throw new Error('Invalid TIFF data! Expected '+expected+' at offset '+(tiffOffset + 2)+' but found 0x'+data.get(tiffOffset + 2).toString(16).toUpperCase()+data.get(tiffOffset + 3).toString(16).toUpperCase()+".");
     }
     
     /********************************* IFD0 **********************************/

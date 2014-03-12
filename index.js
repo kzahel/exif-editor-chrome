@@ -15,8 +15,8 @@ function handleLaunch(launchInfo) {
 function addEntry(entry) {
     console.log('have entry',entry)
     // analyze entry metadata...
-    new ExifImage({image:entry}, function(res) {
-        console.log('exif result',res)
+    new ExifImage({image:entry}, function(error,data) {
+        console.log('exif result',error,data)
     })
 
 }
